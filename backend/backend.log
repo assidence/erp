@@ -1,0 +1,82 @@
+INFO:     Started server process [23072]
+INFO:     Waiting for application startup.
+2026-05-17 12:00:26 - INFO - backend.main - Starting Mechanical Processing Factory ERP v1.0.0
+2026-05-17 12:00:26 - INFO - backend.database - Creating database tables...
+2026-05-17 12:00:26 - INFO - backend.database - Database tables created successfully.
+2026-05-17 12:00:26 - INFO - backend.main - Database initialized successfully
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:36680 - "GET /api/foundries/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40066 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36046 - "GET /api/foundries/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53776 - "GET /api/foundries/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58962 - "GET /api/castings/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58966 - "GET /api/workpiece-outs/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58982 - "GET /api/foundries/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58994 - "GET /api/casting-ins/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42844 - "POST /api/foundries/ HTTP/1.1" 422 Unprocessable Entity
+2026-05-17 12:08:24 - INFO - backend.repositories.base - Created foundries with id=1
+INFO:     127.0.0.1:37766 - "POST /api/foundries/ HTTP/1.1" 201 Created
+INFO:     127.0.0.1:50400 - "GET /api/castings/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50412 - "GET /api/foundries/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50416 - "GET /api/suppliers/ HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:37720 - "GET /api/parts/ HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54684 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59830 - "GET /api/foundries/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59836 - "GET /api/castings/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46252 - "GET /api/foundries/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46264 - "GET /api/foundries/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46270 - "GET /api/customers/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46276 - "GET /api/castings/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:0 - "GET /api/dashboard/stats HTTP/1.0" 404 Not Found
+INFO:     127.0.0.1:0 - "GET /api/dashboard/recent HTTP/1.0" 404 Not Found
+INFO:     127.0.0.1:0 - "GET /api/dashboard/stats HTTP/1.0" 404 Not Found
+INFO:     127.0.0.1:0 - "GET /api/dashboard/recent HTTP/1.0" 404 Not Found
+INFO:     127.0.0.1:0 - "GET /api/parts/ HTTP/1.0" 404 Not Found
+INFO:     127.0.0.1:0 - "GET /api/parts/ HTTP/1.0" 404 Not Found
+INFO:     127.0.0.1:0 - "GET /api/suppliers/ HTTP/1.0" 404 Not Found
+INFO:     127.0.0.1:0 - "GET /api/suppliers/ HTTP/1.0" 404 Not Found
+INFO:     127.0.0.1:0 - "GET /api/customers/ HTTP/1.0" 200 OK
+INFO:     127.0.0.1:0 - "GET /api/dashboard/stats HTTP/1.0" 404 Not Found
+INFO:     127.0.0.1:0 - "GET /api/dashboard/recent HTTP/1.0" 404 Not Found
+INFO:     127.0.0.1:0 - "GET /api/dashboard/stats HTTP/1.0" 404 Not Found
+INFO:     127.0.0.1:0 - "GET /api/dashboard/recent HTTP/1.0" 404 Not Found
+INFO:     127.0.0.1:0 - "GET /api/workpiece-outs/ HTTP/1.0" 200 OK
+INFO:     127.0.0.1:0 - "GET /api/customers/ HTTP/1.0" 200 OK
+INFO:     127.0.0.1:0 - "GET /api/dashboard/recent HTTP/1.0" 404 Not Found
+INFO:     127.0.0.1:0 - "GET /api/dashboard/stats HTTP/1.0" 404 Not Found
+INFO:     127.0.0.1:0 - "GET /api/castings/ HTTP/1.0" 200 OK
+INFO:     127.0.0.1:0 - "GET /api/foundries/ HTTP/1.0" 200 OK
+INFO:     127.0.0.1:0 - "GET /api/casting-ins/ HTTP/1.0" 200 OK
+INFO:     127.0.0.1:56374 - "GET /api/foundries/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49308 - "GET /api/casting-ins/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49318 - "GET /api/customers/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49332 - "GET /api/castings/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49338 - "GET /api/foundries/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49340 - "GET /api/workpiece-outs/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51490 - "GET /api/dashboard/stats HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:51492 - "GET /api/dashboard/recent HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:51048 - "GET /api/foundries/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51060 - "GET /api/castings/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51070 - "GET /api/casting-ins/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50344 - "GET /api/workpiece-outs/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47332 - "GET /api/customers/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47334 - "GET /api/castings/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39170 - "GET /api/foundries/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55254 - "GET /api/dashboard/stats HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:55264 - "GET /api/dashboard/recent HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:51326 - "GET /api/casting-drawings/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47252 - "GET /api/casting-ins/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37984 - "GET /api/workpiece-outs/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:0 - "GET /api/castings/ HTTP/1.0" 200 OK
+INFO:     127.0.0.1:0 - "GET /api/workpiece-outs/ HTTP/1.0" 200 OK
+INFO:     127.0.0.1:0 - "GET /api/customers/ HTTP/1.0" 200 OK
+INFO:     127.0.0.1:0 - "GET /api/dashboard/stats HTTP/1.0" 404 Not Found
+INFO:     127.0.0.1:0 - "GET /api/casting-ins/ HTTP/1.0" 200 OK
+INFO:     127.0.0.1:0 - "GET /api/dashboard/recent HTTP/1.0" 404 Not Found
+INFO:     127.0.0.1:0 - "GET /api/foundries/ HTTP/1.0" 200 OK
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+2026-05-17 13:17:07 - INFO - backend.main - Shutting down ERP application
+INFO:     Application shutdown complete.
+INFO:     Finished server process [23072]
