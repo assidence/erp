@@ -51,3 +51,18 @@ check_old_dirs.sh
 erp_plan.yaml
 erp-backend.service
 erp-frontend.service
+
+# Migration scripts
+run_migration*.py
+migrate_to_*.py
+migrations/migrate_m2m.py
+full_migrate.py
+
+# Debug/test scripts
+test_*.py
+start_and_test.py
+find_images_*.py
+fix_imports.py
+
+# Migration dirs
+migrations/
