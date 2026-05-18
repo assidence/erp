@@ -6,3 +6,30 @@ dist/
 erp.db
 *.pyc
 .claude/
+
+# Logs
+*.log
+backend.log
+backend/backend.log
+
+# DB backups
+*.db.bak
+erp.db*.bak
+
+# Temp files
+temp_*.json
+temp_*.py
+*.bak
+
+# Debug files
+debug-info.txt
+
+# Uploads
+uploads/
+
+# Vite temp files
+vite.config.js.timestamp-*.mjs
+
+# Favicon
+backend/favicon.ico
+frontend.log
