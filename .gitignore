@@ -33,3 +33,21 @@ vite.config.js.timestamp-*.mjs
 # Favicon
 backend/favicon.ico
 frontend.log
+
+# Dev/debug scripts (not for production)
+check_*.py
+verify_*.py
+update_*.py
+fix_*.py
+migrate*.py
+run_migration*.py
+reinit*.py
+scan_*.py
+build.sh
+start.sh
+start_backend*.sh
+start_server.sh
+check_old_dirs.sh
+erp_plan.yaml
+erp-backend.service
+erp-frontend.service
