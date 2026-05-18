@@ -129,10 +129,16 @@ function CastingIns() {
     exportToExcel(exportCols, exportData, '铸件入库')
   }
 
+  // Compute name fields for table display
+  const ciItems = (data?.items ?? []).map(r => ({
+    ...r,
+    _customer_name: customers?.items?.find(c => c.id === r.customer_id)?.name || r.customer_id || '-',
+  }))
+
   const columns = [
     { title: 'ID', dataIndex: 'id', key: 'id', width: 60 },
     { title: '交货单号', dataIndex: 'delivery_note_no', key: 'delivery_note_no' },
-    { title: '客户ID', dataIndex: 'customer_id', key: 'customer_id', width: 80 },
+    { title: '客户', dataIndex: '_customer_name', key: 'customer_id', width: 100 },
     { title: '铸造厂', dataIndex: 'foundry_name', key: 'foundry_name', width: 120 },
     { title: '铸件', dataIndex: 'casting_name', key: 'casting_name',
       render: (_, r) => r.casting_name ? `${r.casting_name} (${r.casting_part_number || r.casting_id})` : r.casting_id },
@@ -204,7 +210,7 @@ function CastingIns() {
 
       <Table
         columns={columns}
-        dataSource={(data?.items ?? [])}
+        dataSource={ciItems}
         rowKey="id"
         loading={isLoading}
         expandable={{ expandedRowRender }}

@@ -21,6 +21,15 @@ def list_todos(db: Session = Depends(get_db)):
     return todos
 
 
+@router.get("/{todo_id}", response_model=TodoResponse)
+def get_todo(todo_id: int, db: Session = Depends(get_db)):
+    """Get a single todo by ID."""
+    todo = db.query(Todo).filter(Todo.id == todo_id).first()
+    if not todo:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Todo not found")
+    return todo
+
+
 @router.post("/", status_code=status.HTTP_201_CREATED, response_model=TodoResponse)
 def create_todo(data: TodoCreate, db: Session = Depends(get_db)):
     """Create a new todo."""

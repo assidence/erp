@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from typing import List
 
 from backend.database import get_db
-from backend.models.all_models import Foundry, Customer
+from backend.models.all_models import Foundry, Customer, CustomerFoundry
 from backend.schemas.foundry import (
     FoundryCreate, FoundryUpdate, FoundryResponse,
     FoundryDetailResponse, CustomerSummary
@@ -52,16 +52,33 @@ def get_foundry(foundry_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Foundry not found")
 
     # Get linked customers via customer_foundries junction
-    linked = db.query(Customer).join(
-        db.query(Customer).filter(Customer.id.in_(
-            db.query(Customer).subquery()
-        )).subquery()
-    ).all()
+    linked_customer_rows = (
+        db.query(Customer)
+        .join(CustomerFoundry, CustomerFoundry.customer_id == Customer.id)
+        .filter(CustomerFoundry.foundry_id == foundry_id)
+        .all()
+    )
+    linked_customers = [
+        CustomerSummary(
+            id=c.id,
+            name=c.name,
+            contact_person=c.contact_person,
+            phone=c.phone,
+        )
+        for c in linked_customer_rows
+    ]
 
-    return {
-        **foundry.__dict__,
-        "linked_customers": []
-    }
+    return FoundryDetailResponse(
+        id=foundry.id,
+        name=foundry.name,
+        contact_person=foundry.contact_person,
+        phone=foundry.phone,
+        address=foundry.address,
+        images=foundry.images or [],
+        created_at=foundry.created_at,
+        updated_at=foundry.updated_at,
+        linked_customers=linked_customers,
+    )
 
 
 @router.post("/", response_model=FoundryResponse, status_code=status.HTTP_201_CREATED)

@@ -1,12 +1,11 @@
 import React, { useState } from 'react'
-import { Table, Button, Input, Space, Modal, Form, Select, DatePicker, message, Tag, Popconfirm, Tooltip } from 'antd'
-import { PlusOutlined, EditOutlined, DeleteOutlined, WarningOutlined, CheckCircleOutlined, DownloadOutlined } from '@ant-design/icons'
+import { Table, Button, Input, Space, Modal, Form, Select, DatePicker, message, Tag, Popconfirm, Tooltip, Upload, Image, Popover } from 'antd'
+import { PlusOutlined, EditOutlined, DeleteOutlined, WarningOutlined, CheckCircleOutlined, DownloadOutlined, PaperClipOutlined, UploadOutlined, FileOutlined } from '@ant-design/icons'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import dayjs from 'dayjs'
-import { paymentPlansApi, customerApi, workpieceOutApi } from '../../api'
+import { paymentPlansApi, customerApi, workpieceOutApi, attachmentApi } from '../../api'
 import { exportToExcel } from '../../utils/exportExcel'
 
-// Status config: pending(待收款) → invoiced(已开票) → paid(已收款) / partial(部分收款) / bad_debt(坏账)
 const STATUS_CONFIG = {
   pending:    { color: 'orange', label: '待收款' },
   no_invoice: { color: 'purple', label: '不需开票' },
@@ -23,11 +22,12 @@ function PaymentPlans() {
   const [editingId, setEditingId] = useState(null)
   const [form] = Form.useForm()
   const queryClient = useQueryClient()
-
   const [filterCustomer, setFilterCustomer] = useState(null)
   const [filterStatus, setFilterStatus] = useState(null)
-  const [filterOverdue, setFilterOverdue] = useState(null)  // true=已逾期, false=未逾期, null=全部
-  const [filterSettled, setFilterSettled] = useState(null)  // true=已结算, false=未结算, null=全部
+  const [filterOverdue, setFilterOverdue] = useState(null)
+  const [filterSettled, setFilterSettled] = useState(null)
+  const [isAttachmentModalOpen, setIsAttachmentModalOpen] = useState(false)
+  const [attachmentPlanId, setAttachmentPlanId] = useState(null)
 
   const buildParams = () => {
     const p = { page, page_size: pageSize }
@@ -56,11 +56,16 @@ function PaymentPlans() {
     queryFn: () => workpieceOutApi.list({ page: 1, page_size: 500 })
   })
 
-  // Unaligned production plans
   const { data: unalignedPlans, isLoading: unalignedLoading } = useQuery({
     queryKey: ['payment-plans-unaligned'],
     queryFn: () => paymentPlansApi.getUnalignedPlans(),
     refetchInterval: 30000,
+  })
+
+  const { data: attachmentsData, refetch: refetchAttachments } = useQuery({
+    queryKey: ['attachments', 'payment_plans', attachmentPlanId],
+    queryFn: () => attachmentApi.listByEntity('payment_plans', attachmentPlanId),
+    enabled: !!attachmentPlanId,
   })
 
   const createMutation = useMutation({
@@ -101,6 +106,29 @@ function PaymentPlans() {
     }
   })
 
+  const uploadMutation = useMutation({
+    mutationFn: ({ file, description }) =>
+      attachmentApi.upload('payment_plans', attachmentPlanId, file, description),
+    onSuccess: () => {
+      message.success('附件上传成功')
+      refetchAttachments()
+    },
+    onError: (err) => {
+      message.error(err?.response?.data?.detail || '上传失败')
+    }
+  })
+
+  const deleteAttachmentMutation = useMutation({
+    mutationFn: (id) => attachmentApi.delete(id),
+    onSuccess: () => {
+      message.success('附件已删除')
+      refetchAttachments()
+    },
+    onError: (err) => {
+      message.error(err?.response?.data?.detail || '删除失败')
+    }
+  })
+
   const handleModalClose = () => {
     setIsModalOpen(false)
     setEditingId(null)
@@ -118,13 +146,14 @@ function PaymentPlans() {
   }
 
   const handleSubmit = (values) => {
+    const id = editingId
     const payload = {
       ...values,
       expected_date: values.expected_date ? values.expected_date.format('YYYY-MM-DD') : null,
       actual_date: values.actual_date ? values.actual_date.format('YYYY-MM-DD') : null,
     }
-    if (editingId) {
-      updateMutation.mutate({ id: editingId, data: payload })
+    if (id) {
+      updateMutation.mutate({ id, data: payload })
     } else {
       createMutation.mutate(payload)
     }
@@ -166,10 +195,24 @@ function PaymentPlans() {
     exportToExcel(exportCols, exportData, '收款计划')
   }
 
+  const openAttachmentModal = (planId) => {
+    setAttachmentPlanId(planId)
+    setIsAttachmentModalOpen(true)
+  }
+
+  const isImageFile = (mimeType) => {
+    return mimeType && mimeType.startsWith('image/')
+  }
+
+  const getFileUrl = (att) => {
+    const relativePath = att.file_path.replace('/home/ubuntu/erp/uploads/', '')
+    return '/uploads/' + relativePath
+  }
+
   const unalignedColumns = [
     { title: '计划编号', dataIndex: 'plan_no', key: 'plan_no', width: 130 },
     { title: '客户', dataIndex: 'customer_name', key: 'customer_name', width: 130,
-      render: (name, r) => name || `客户${r.customer_id}` },
+      render: (name, r) => name || '客户' + r.customer_id },
     { title: '截止日期', dataIndex: 'due_date', key: 'due_date', width: 110,
       render: (d) => d ? d.slice(0, 10) : '-' },
     { title: '计划状态', dataIndex: 'status', key: 'status', width: 90,
@@ -195,13 +238,13 @@ function PaymentPlans() {
       width: 120,
       render: (amount) => (
         <span style={{ color: '#1677ff', fontWeight: 500 }}>
-          ¥{Number(amount)?.toLocaleString()}
+          {amount != null ? '¥' + Number(amount).toLocaleString() : '-'}
         </span>
       )
     },
     { title: '到期日', dataIndex: 'expected_date', key: 'expected_date', width: 110,
       render: (d) => {
-        if (!d) return <span style={{ color: '#999' }}>—</span>
+        if (!d) return <span style={{ color: '#999' }}>-</span>
         const isOverdue = new Date(d) < new Date()
         return (
           <Tooltip title={isOverdue ? '已逾期' : ''}>
@@ -212,10 +255,20 @@ function PaymentPlans() {
         )
       } },
     { title: '实际收款日', dataIndex: 'actual_date', key: 'actual_date', width: 110,
-      render: (d) => d ? d.slice(0, 10) : <span style={{ color: '#999' }}>—</span> },
+      render: (d) => d ? d.slice(0, 10) : <span style={{ color: '#999' }}>-</span> },
     { title: '收款方式', dataIndex: 'payment_method', key: 'payment_method', width: 100,
-      render: (m) => m || <span style={{ color: '#999' }}>—</span> },
+      render: (m) => m || <span style={{ color: '#999' }}>-</span> },
     { title: '状态', dataIndex: 'status', key: 'status', width: 90, render: getStatusTag },
+    {
+      title: '附件',
+      key: 'attachments',
+      width: 80,
+      render: (_, record) => (
+        <Button size="small" icon={<PaperClipOutlined />} onClick={() => openAttachmentModal(record.id)}>
+          附件
+        </Button>
+      )
+    },
     {
       title: '操作',
       key: 'action',
@@ -236,16 +289,13 @@ function PaymentPlans() {
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h1>收款计划</h1>
         <Space>
-          <Button icon={<DownloadOutlined />} onClick={handleExport}>
-            导出Excel
-          </Button>
+          <Button icon={<DownloadOutlined />} onClick={handleExport}>导出Excel</Button>
           <Button type="primary" icon={<PlusOutlined />} onClick={() => setIsModalOpen(true)}>
             新增收款计划
           </Button>
         </Space>
       </div>
 
-      {/* Filter row */}
       <Space wrap style={{ marginBottom: 16 }} size="middle">
         <Select
           placeholder="按客户筛选"
@@ -294,13 +344,12 @@ function PaymentPlans() {
         />
       </Space>
 
-      {/* Unaligned Production Plans Section */}
       {unalignedPlans && unalignedPlans.length > 0 && (
         <div style={{ marginBottom: 24 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
             <WarningOutlined style={{ color: '#fa8c16', fontSize: 16 }} />
             <span style={{ fontWeight: 600, color: '#262626' }}>未生成收款计划的生产计划（{unalignedPlans.length}项）</span>
-            <span style={{ color: '#8c8c8c', fontSize: 12 }}>— 以下生产计划尚未生成对应的收款计划，原因如下：</span>
+            <span style={{ color: '#8c8c8c', fontSize: 12 }}>以下生产计划尚未生成对应的收款计划，原因如下：</span>
           </div>
           <Table
             columns={unalignedColumns}
@@ -331,7 +380,7 @@ function PaymentPlans() {
           pageSize,
           total: data?.total ?? 0,
           showSizeChanger: true,
-          showTotal: (total) => `共 ${total} 条`,
+          showTotal: (total) => '共 ' + total + ' 条',
           onChange: (p, ps) => { setPage(p); setPageSize(ps) }
         }}
       />
@@ -401,6 +450,60 @@ function PaymentPlans() {
             </Space>
           </Form.Item>
         </Form>
+      </Modal>
+
+      <Modal
+        title="附件管理"
+        open={isAttachmentModalOpen}
+        onCancel={() => { setIsAttachmentModalOpen(false); setAttachmentPlanId(null) }}
+        footer={null}
+        width={700}
+      >
+        <div style={{ marginBottom: 16 }}>
+          <Upload.Dragger
+            beforeUpload={(file) => { uploadMutation.mutate({ file, description: '' }); return false }}
+            showUploadList={false}
+            disabled={uploadMutation.isPending}
+            multiple
+          >
+            <p className="ant-upload-drag-icon"><UploadOutlined /></p>
+            <p className="ant-upload-text">点击或拖拽文件上传</p>
+            <p className="ant-upload-hint">支持图片、PDF、Word、Excel等文件</p>
+          </Upload.Dragger>
+        </div>
+
+        {(attachmentsData ?? []).length === 0 ? (
+          <div style={{ textAlign: 'center', color: '#999', padding: '32px 0' }}>
+            <FileOutlined style={{ fontSize: 32, marginBottom: 8 }} />
+            <div>暂无附件</div>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+            {(attachmentsData ?? []).map(att => (
+              <div key={att.id} style={{ width: 120, border: '1px solid #f0f0f0', borderRadius: 8, overflow: 'hidden', background: '#fff', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+                {isImageFile(att.mime_type) ? (
+                  <Popover content={<Image src={getFileUrl(att)} style={{ maxWidth: 400 }} />} title={att.file_name} trigger="click">
+                    <div style={{ height: 100, overflow: 'hidden', cursor: 'pointer', background: '#fafafa' }}>
+                      <img src={getFileUrl(att)} alt={att.file_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    </div>
+                  </Popover>
+                ) : (
+                  <div style={{ height: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f0f5ff', cursor: 'pointer' }}
+                    onClick={() => window.open(getFileUrl(att), '_blank')}>
+                    <FileOutlined style={{ fontSize: 36, color: '#1677ff' }} />
+                  </div>
+                )}
+                <div style={{ padding: '6px 8px', borderTop: '1px solid #f0f0f0' }}>
+                  <div style={{ fontSize: 11, color: '#666', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={att.file_name}>{att.file_name}</div>
+                  <div style={{ fontSize: 10, color: '#999' }}>{att.file_size ? (att.file_size / 1024).toFixed(1) + ' KB' : ''}</div>
+                  <Popconfirm title="确定删除此附件？" onConfirm={() => deleteAttachmentMutation.mutate(att.id)} okText="删除" cancelText="取消">
+                    <Button type="text" size="small" danger style={{ padding: '0 0', fontSize: 11 }}>删除</Button>
+                  </Popconfirm>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </Modal>
     </div>
   )

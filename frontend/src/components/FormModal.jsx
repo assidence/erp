@@ -47,7 +47,7 @@ export default function FormModal({ open, onClose, onSubmit, title, loading, fie
       onCancel={handleCancel}
       confirmLoading={loading}
       width={width}
-      destroyOnClose
+      destroyOnHidden
     >
       <Form form={form} layout="vertical">
         {fields.map((field, i) => (
@@ -58,7 +58,7 @@ export default function FormModal({ open, onClose, onSubmit, title, loading, fie
             rules={field.rules}
             valuePropName={field.type === 'switch' ? 'checked' : 'value'}
             initialValue={field.initialValue}
-            style={field.span ? { display: 'inline-block', width: `calc(${field.span / 24 * 100}% - 8px)` } : undefined}
+            style={field.span ? { display: 'inline-block', width: `calc(\${field.span / 24 * 100}% - 8px)` } : undefined}
           >
             {renderField(field)}
           </Form.Item>

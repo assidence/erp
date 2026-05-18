@@ -23,7 +23,15 @@ export default function Customers() {
 
   const { data: linkedFoundries } = useQuery({
     queryKey: ['customer-foundries', selectedCustomer?.id],
-    queryFn: () => customerApi.get(selectedCustomer?.id).then(c => c?.linked_foundries || []),
+    queryFn: async () => {
+      try {
+        const c = await customerApi.get(selectedCustomer?.id)
+        return c?.linked_foundries || []
+      } catch (err) {
+        if (err?.response?.status === 404) return []
+        throw err
+      }
+    },
     enabled: !!selectedCustomer?.id
   })
 
@@ -37,7 +45,24 @@ export default function Customers() {
   })
   const deleteMutation = useMutation({
     mutationFn: (id) => customerApi.delete(id),
-    onSuccess: () => queryClient.invalidateQueries(['customers'])
+    onSuccess: (data, variables) => {
+      // Update the list cache directly
+      queryClient.setQueryData(['customers', page, pageSize, search], (old) => {
+        if (!old) return old
+        return {
+          ...old,
+          items: (old.items || []).filter(c => c.id !== variables),
+          total: Math.max(0, (old.total || 0) - 1)
+        }
+      })
+      // Cancel pending customer-foundries query for deleted customer
+      queryClient.cancelQueries({ queryKey: ['customer-foundries', variables] })
+      // If deleting the currently viewed customer, close detail panel
+      if (selectedCustomer?.id === variables) {
+        setSelectedCustomer(null)
+        setDetailOpen(false)
+      }
+    }
   })
 
   const handleEdit = (record) => {
@@ -49,7 +74,7 @@ export default function Customers() {
     setSelectedCustomer(detail)
     setDetailOpen(true)
   }
-  const handleDelete = (record) => deleteMutation.mutate(record.id)
+  const handleDelete = (id) => deleteMutation.mutate(id)
   const handleSubmit = (values) => {
     if (editingRecord) {
       updateMutation.mutate({ id: editingRecord.id, data: values })
@@ -87,8 +112,8 @@ export default function Customers() {
       title: '操作', key: 'actions',
       render: (_, record) => (
         <Space>
-          <Button type="link" size="small" onClick={() => handleEdit(record)}>编辑</Button>
-          <Button type="link" size="small" danger onClick={() => handleDelete(record.id)}>删除</Button>
+          <Button type="link" size="small" onClick={(e) => { e.stopPropagation(); handleEdit(record) }}>编辑</Button>
+          <Button type="link" size="small" danger onClick={(e) => { e.stopPropagation(); handleDelete(record.id) }}>删除</Button>
         </Space>
       )
     },

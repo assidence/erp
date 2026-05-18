@@ -127,10 +127,17 @@ function QualityIssues() {
     exportToExcel(exportCols, exportData, '质量问题')
   }
 
+  // Compute name fields
+  const qiItems = (data?.items || []).map(r => ({
+    ...r,
+    _customer_name: customers?.items?.find(c => c.id === r.customer_id)?.name || r.customer_id || '-',
+    _casting_name: castings?.items?.find(c => c.id === r.casting_id)?.name || r.casting_id || '-',
+  }))
+
   const columns = [
     { title: 'ID', dataIndex: 'id', key: 'id', width: 60 },
-    { title: '客户ID', dataIndex: 'customer_id', key: 'customer_id', width: 80 },
-    { title: '铸件ID', dataIndex: 'casting_id', key: 'casting_id', width: 80 },
+    { title: '客户', dataIndex: '_customer_name', key: 'customer_id', width: 100 },
+    { title: '铸件', dataIndex: '_casting_name', key: 'casting_id', width: 120 },
     { title: '问题类型', dataIndex: 'issue_type', key: 'issue_type', width: 120 },
     { title: '问题描述', dataIndex: 'description', key: 'description', ellipsis: true },
     { title: '严重程度', dataIndex: 'severity', key: 'severity', render: getSeverityTag },
@@ -176,7 +183,7 @@ function QualityIssues() {
 
       <Table
         columns={columns}
-        dataSource={data?.items || []}
+        dataSource={qiItems}
         rowKey="id"
         loading={isLoading}
         pagination={{

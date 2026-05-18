@@ -1,9 +1,9 @@
 import React, { useState } from 'react'
-import { Table, Button, Input, Space, Modal, Form, Select, DatePicker, message, Tag, Popconfirm } from 'antd'
-import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, MinusCircleOutlined, DownloadOutlined } from '@ant-design/icons'
+import { Table, Button, Input, Space, Modal, Form, Select, DatePicker, message, Tag, Popconfirm, Upload, Image, Popover } from 'antd'
+import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, MinusCircleOutlined, DownloadOutlined, PaperClipOutlined, UploadOutlined, FileOutlined } from '@ant-design/icons'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import dayjs from 'dayjs'
-import { productionPlansApi, customerApi, castingApi } from '../../api'
+import { productionPlansApi, customerApi, castingApi, attachmentApi } from '../../api'
 import { exportToExcel } from '../../utils/exportExcel'
 
 function ProductionPlans() {
@@ -14,6 +14,8 @@ function ProductionPlans() {
   const [editingId, setEditingId] = useState(null)
   const [form] = Form.useForm()
   const queryClient = useQueryClient()
+  const [isAttachmentModalOpen, setIsAttachmentModalOpen] = useState(false)
+  const [attachmentPlanId, setAttachmentPlanId] = useState(null)
 
   const { data, isLoading } = useQuery({
     queryKey: ['production-plans', page, pageSize, searchText],
@@ -31,6 +33,12 @@ function ProductionPlans() {
   const { data: allCastings } = useQuery({
     queryKey: ['castings-for-production'],
     queryFn: () => castingApi.list({ page: 1, page_size: 500 })
+  })
+
+  const { data: attachmentsData, refetch: refetchAttachments } = useQuery({
+    queryKey: ['attachments', 'production_plans', attachmentPlanId],
+    queryFn: () => attachmentApi.listByEntity('production_plans', attachmentPlanId),
+    enabled: !!attachmentPlanId,
   })
 
   const createMutation = useMutation({
@@ -68,6 +76,29 @@ function ProductionPlans() {
     }
   })
 
+  const uploadMutation = useMutation({
+    mutationFn: ({ file, description }) =>
+      attachmentApi.upload('production_plans', attachmentPlanId, file, description),
+    onSuccess: () => {
+      message.success('附件上传成功')
+      refetchAttachments()
+    },
+    onError: (err) => {
+      message.error(err?.response?.data?.detail || '上传失败')
+    }
+  })
+
+  const deleteAttachmentMutation = useMutation({
+    mutationFn: (id) => attachmentApi.delete(id),
+    onSuccess: () => {
+      message.success('附件已删除')
+      refetchAttachments()
+    },
+    onError: (err) => {
+      message.error(err?.response?.data?.detail || '删除失败')
+    }
+  })
+
   const handleModalClose = () => {
     setIsModalOpen(false)
     setEditingId(null)
@@ -94,13 +125,14 @@ function ProductionPlans() {
   }
 
   const handleSubmit = (values) => {
+    const id = editingId
     const payload = {
       ...values,
-      start_date: values.start_date ? values.start_date.format('YYYY-MM-DD') : null,
-      due_date: values.due_date ? values.due_date.format('YYYY-MM-DD') : null
+      start_date: values.start_date ? values.start_date.format('YYYY-MM-DDTHH:mm:ss') : null,
+      due_date: values.due_date ? values.due_date.format('YYYY-MM-DDTHH:mm:ss') : null
     }
-    if (editingId) {
-      updateMutation.mutate({ id: editingId, data: payload })
+    if (id) {
+      updateMutation.mutate({ id, data: payload })
     } else {
       createMutation.mutate(payload)
     }
@@ -137,24 +169,50 @@ function ProductionPlans() {
     exportToExcel(exportCols, exportData, '生产计划')
   }
 
+  const openAttachmentModal = (planId) => {
+    setAttachmentPlanId(planId)
+    setIsAttachmentModalOpen(true)
+  }
+
+  const isImageFile = (mimeType) => {
+    return mimeType && mimeType.startsWith('image/')
+  }
+
+  const getFileUrl = (att) => {
+    const relativePath = att.file_path.replace('/home/ubuntu/erp/uploads/', '')
+    return '/uploads/' + relativePath
+  }
+
   const itemColumns = [
     { title: '零件ID', dataIndex: 'casting_id', key: 'casting_id', width: 80 },
     { title: '需求数量', dataIndex: 'required_quantity', key: 'required_quantity', width: 100 },
     { title: '已完成', dataIndex: 'produced_quantity', key: 'produced_quantity', width: 80 },
     { title: '待发货', dataIndex: 'remaining_quantity', key: 'remaining_quantity', width: 80 },
     { title: '单价', dataIndex: 'unit_price', key: 'unit_price', width: 80,
-      render: (v) => v != null ? `¥${Number(v).toFixed(2)}` : '-' }
+      render: (v) => v != null ? '¥' + Number(v).toFixed(2) : '-' }
   ]
 
   const columns = [
     { title: 'ID', dataIndex: 'id', key: 'id', width: 60 },
     { title: '计划编号', dataIndex: 'plan_no', key: 'plan_no' },
-    { title: '客户ID', dataIndex: 'customer_id', key: 'customer_id', width: 80 },
+    { title: '客户', dataIndex: 'customer_id', key: 'customer_id', width: 120,
+      render: (cid) => customers?.items?.find(c => c.id === cid)?.name || cid || '-'
+    },
     { title: '零件种数', key: 'item_count', width: 90,
       render: (_, record) => record.items?.length ?? 0 },
     { title: '开始日期', dataIndex: 'start_date', key: 'start_date', width: 120 },
     { title: '截止日期', dataIndex: 'due_date', key: 'due_date', width: 120 },
     { title: '状态', dataIndex: 'status', key: 'status', render: getStatusTag },
+    {
+      title: '附件',
+      key: 'attachments',
+      width: 80,
+      render: (_, record) => (
+        <Button size="small" icon={<PaperClipOutlined />} onClick={() => openAttachmentModal(record.id)}>
+          附件
+        </Button>
+      )
+    },
     {
       title: '操作',
       key: 'action',
@@ -216,7 +274,7 @@ function ProductionPlans() {
           pageSize,
           total: data?.total ?? 0,
           showSizeChanger: true,
-          showTotal: (total) => `共 ${total} 条`,
+          showTotal: (total) => '共 ' + total + ' 条',
           onChange: (p, ps) => { setPage(p); setPageSize(ps) }
         }}
       />
@@ -277,7 +335,7 @@ function ProductionPlans() {
                           }}>
                           {(allCastings?.items ?? []).map(c => (
                             <Select.Option key={c.id} value={c.id}>
-                              {c.name} ({c.part_number}){c.latest_price ? ` ¥${Number(c.latest_price).toFixed(2)}` : ''}
+                              {c.name} ({c.part_number}){c.latest_price ? ' ¥' + Number(c.latest_price).toFixed(2) : ''}
                             </Select.Option>
                           ))}
                         </Select>
@@ -322,6 +380,60 @@ function ProductionPlans() {
             </Button>
           </Form.Item>
         </Form>
+      </Modal>
+
+      <Modal
+        title="附件管理"
+        open={isAttachmentModalOpen}
+        onCancel={() => { setIsAttachmentModalOpen(false); setAttachmentPlanId(null) }}
+        footer={null}
+        width={700}
+      >
+        <div style={{ marginBottom: 16 }}>
+          <Upload.Dragger
+            beforeUpload={(file) => { uploadMutation.mutate({ file, description: '' }); return false }}
+            showUploadList={false}
+            disabled={uploadMutation.isPending}
+            multiple
+          >
+            <p className="ant-upload-drag-icon"><UploadOutlined /></p>
+            <p className="ant-upload-text">点击或拖拽文件上传</p>
+            <p className="ant-upload-hint">支持图片、PDF、Word、Excel等文件</p>
+          </Upload.Dragger>
+        </div>
+
+        {(attachmentsData ?? []).length === 0 ? (
+          <div style={{ textAlign: 'center', color: '#999', padding: '32px 0' }}>
+            <FileOutlined style={{ fontSize: 32, marginBottom: 8 }} />
+            <div>暂无附件</div>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+            {(attachmentsData ?? []).map(att => (
+              <div key={att.id} style={{ width: 120, border: '1px solid #f0f0f0', borderRadius: 8, overflow: 'hidden', background: '#fff', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+                {isImageFile(att.mime_type) ? (
+                  <Popover content={<Image src={getFileUrl(att)} style={{ maxWidth: 400 }} />} title={att.file_name} trigger="click">
+                    <div style={{ height: 100, overflow: 'hidden', cursor: 'pointer', background: '#fafafa' }}>
+                      <img src={getFileUrl(att)} alt={att.file_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    </div>
+                  </Popover>
+                ) : (
+                  <div style={{ height: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f0f5ff', cursor: 'pointer' }}
+                    onClick={() => window.open(getFileUrl(att), '_blank')}>
+                    <FileOutlined style={{ fontSize: 36, color: '#1677ff' }} />
+                  </div>
+                )}
+                <div style={{ padding: '6px 8px', borderTop: '1px solid #f0f0f0' }}>
+                  <div style={{ fontSize: 11, color: '#666', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={att.file_name}>{att.file_name}</div>
+                  <div style={{ fontSize: 10, color: '#999' }}>{att.file_size ? (att.file_size / 1024).toFixed(1) + ' KB' : ''}</div>
+                  <Popconfirm title="确定删除此附件？" onConfirm={() => deleteAttachmentMutation.mutate(att.id)} okText="删除" cancelText="取消">
+                    <Button type="text" size="small" danger style={{ padding: '0 0', fontSize: 11 }}>删除</Button>
+                  </Popconfirm>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </Modal>
     </div>
   )

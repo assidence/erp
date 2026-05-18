@@ -192,10 +192,21 @@ function WorkpieceOuts() {
     exportToExcel(exportCols, exportData, '工件出库')
   }
 
+  // Compute name fields for main table
+  const woItems = (data?.items || []).map(r => ({
+    ...r,
+    _customer_name: customers?.items?.find(c => c.id === r.customer_id)?.name || r.customer_id || '-',
+    // Also enrich items for expanded row
+    items: (r.items || []).map(it => ({
+      ...it,
+      _casting_name: plans?.items?.find(p => p.id === r.production_plan_id)?.items?.find(pi => pi.casting_id === it.casting_id)?.casting_name || it.casting_id || '-',
+    })),
+  }))
+
   const columns = [
     { title: 'ID', dataIndex: 'id', key: 'id', width: 60 },
     { title: '交货单号', dataIndex: 'delivery_note_no', key: 'delivery_note_no' },
-    { title: '客户ID', dataIndex: 'customer_id', key: 'customer_id', width: 80 },
+    { title: '客户', dataIndex: '_customer_name', key: 'customer_id', width: 100 },
     { title: '零件种数', key: 'item_count', width: 90,
       render: (_, record) => record.items?.length ?? 0 },
     { title: '发货日期', dataIndex: 'delivery_date', key: 'delivery_date', width: 120 },
@@ -216,7 +227,8 @@ function WorkpieceOuts() {
   ]
 
   const itemColumns = [
-    { title: '零件ID', dataIndex: 'casting_id', key: 'casting_id', width: 80 },
+    { title: '零件', dataIndex: '_casting_name', key: 'casting_id', width: 120,
+      render: (v) => v || '-' },
     { title: '发货数量', dataIndex: 'quantity', key: 'quantity', width: 90 },
     { title: '单价', dataIndex: 'unit_price', key: 'unit_price', width: 80,
       render: (v) => v != null ? `¥${Number(v).toFixed(2)}` : '-' },
@@ -228,7 +240,7 @@ function WorkpieceOuts() {
     <div style={{ padding: '8px 0' }}>
       <Table
         size="small"
-        dataSource={record.items || []}
+        dataSource={(record.items || []).map(it => ({...it, _casting_name: plans?.items?.find(p => p.id === record.production_plan_id)?.items?.find(pi => pi.casting_id === it.casting_id)?.casting_name || it.casting_id || '-'}))}
         columns={itemColumns}
         rowKey="id"
         pagination={false}
@@ -276,7 +288,7 @@ function WorkpieceOuts() {
 
       <Table
         columns={columns}
-        dataSource={(data?.items ?? [])}
+        dataSource={woItems}
         rowKey="id"
         loading={isLoading}
         expandable={{ expandedRowRender }}

@@ -15,6 +15,23 @@ api.interceptors.response.use(
 
 export default api
 
+// Attachment API
+export const attachmentApi = {
+  listByEntity: (entityType, entityId) =>
+    api.get(`/attachments/entity/${entityType}/${entityId}/`),
+  upload: (entityType, entityId, file, description) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('entity_type', entityType)
+    formData.append('entity_id', String(entityId))
+    if (description) formData.append('description', description)
+    return api.post('/attachments/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+  },
+  delete: (id) => api.delete(`/attachments/${id}/`),
+}
+
 // Foundries API
 export const foundryApi = {
   list: (params) => api.get('/foundries/', { params }),
