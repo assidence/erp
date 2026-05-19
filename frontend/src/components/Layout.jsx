@@ -10,12 +10,13 @@ const menuItems = [
   { key: '/customers', icon: <TeamOutlined />, label: '客户管理' },
   { key: '/foundries', icon: <ShopOutlined />, label: '铸造厂管理' },
   { key: '/castings', icon: <AppstoreOutlined />, label: '铸件管理' },
+  { key: '/casting-ins', icon: <ImportOutlined />, label: '铸件入库' },
   {
     key: '/production',
     icon: <CalendarOutlined />,
     label: '生产管理',
     children: [
-      { key: '/casting-ins', icon: <ImportOutlined />, label: '铸件入库' },
+      { key: '/casting-inventory', icon: <ImportOutlined />, label: '铸件库存' },
       { key: '/production-plans', icon: <CalendarOutlined />, label: '生产计划' },
       { key: '/workpiece-outs', icon: <ExportOutlined />, label: '工件出库' },
     ],

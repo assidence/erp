@@ -4,7 +4,7 @@ ProductionPlan Pydantic Schemas
 from datetime import datetime
 from decimal import Decimal
 from typing import Optional, List
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 # ProductionPlanItem Schemas
@@ -47,7 +47,7 @@ class ProductionPlanBase(BaseModel):
     due_date: Optional[datetime] = None
     status: Optional[str] = "pending"
     notes: Optional[str] = None
-    images: Optional[list[str]] = []
+    images: list[str] = Field(default_factory=list)
 
 
 class ProductionPlanCreate(ProductionPlanBase):
@@ -74,5 +74,14 @@ class ProductionPlanResponse(ProductionPlanBase):
     id: int
     created_at: datetime
     updated_at: datetime
-    images: list[str] = []
+    images: list[str] = Field(default_factory=list)
     items: List[ProductionPlanItemResponse] = []
+
+    @model_validator(mode="before")
+    def fix_null_images(cls, v):
+        if hasattr(v, "images"):
+            if v.images is None:
+                v.images = []
+        elif isinstance(v, dict) and v.get("images") is None:
+            v["images"] = []
+        return v

@@ -17,6 +17,7 @@ class CastingInBase(BaseModel):
     incoming_date: datetime
     delivery_date: Optional[datetime] = None
     received_by: Optional[str] = None
+    status: Optional[str] = "pending"
     notes: Optional[str] = None
     images: Optional[List[str]] = []
 

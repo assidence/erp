@@ -1,9 +1,9 @@
-import React, { useState } from 'react'
-import { Table, Button, Input, Space, Modal, Form, Select, DatePicker, message, Tag, Popconfirm, Upload, Image, Popover } from 'antd'
+import React, { useState, useEffect } from 'react'
+import { Table, Button, Input, Space, Modal, Form, Select, DatePicker, message, Tag, Popconfirm, Upload, Image, Popover, Alert } from 'antd'
 import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, MinusCircleOutlined, DownloadOutlined, PaperClipOutlined, UploadOutlined, FileOutlined } from '@ant-design/icons'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import dayjs from 'dayjs'
-import { productionPlansApi, customerApi, castingApi, attachmentApi } from '../../api'
+import { productionPlansApi, customerApi, castingApi, attachmentApi, castingInventoryApi } from '../../api'
 import { exportToExcel } from '../../utils/exportExcel'
 
 function ProductionPlans() {
@@ -16,6 +16,10 @@ function ProductionPlans() {
   const queryClient = useQueryClient()
   const [isAttachmentModalOpen, setIsAttachmentModalOpen] = useState(false)
   const [attachmentPlanId, setAttachmentPlanId] = useState(null)
+
+  // Watch items array to re-render when selection changes
+  const itemsValues = Form.useWatch('items', form)
+  const selectedCustomerId = Form.useWatch('customer_id', form)
 
   const { data, isLoading } = useQuery({
     queryKey: ['production-plans', page, pageSize, searchText],
@@ -35,6 +39,24 @@ function ProductionPlans() {
     queryFn: () => castingApi.list({ page: 1, page_size: 500 })
   })
 
+  //铸造下拉选项：仅显示所选客户的铸造
+  const castingOptions = (allCastings?.items ?? []).filter(c =>
+    !selectedCustomerId || c.customer_id === selectedCustomerId
+  )
+
+  const { data: inventoryData } = useQuery({
+    queryKey: ['casting-inventory'],
+    queryFn: () => castingInventoryApi.list(),
+    // Refetch when form opens
+    enabled: isModalOpen,
+  })
+
+  // Build a map of casting_id -> available qty
+  const availableMap = {}
+  ;(inventoryData?.items || []).forEach(item => {
+    availableMap[item.casting_id] = item.available
+  })
+
   const { data: attachmentsData, refetch: refetchAttachments } = useQuery({
     queryKey: ['attachments', 'production_plans', attachmentPlanId],
     queryFn: () => attachmentApi.listByEntity('production_plans', attachmentPlanId),
@@ -45,6 +67,7 @@ function ProductionPlans() {
     mutationFn: (data) => productionPlansApi.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['production-plans'] })
+      queryClient.invalidateQueries({ queryKey: ['casting-inventory'] })
       message.success('生产计划创建成功')
       handleModalClose()
     },
@@ -57,6 +80,7 @@ function ProductionPlans() {
     mutationFn: ({ id, data }) => productionPlansApi.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['production-plans'] })
+      queryClient.invalidateQueries({ queryKey: ['casting-inventory'] })
       message.success('生产计划更新成功')
       handleModalClose()
     },
@@ -319,42 +343,65 @@ function ProductionPlans() {
                     <div style={{ width: 100 }}>单价</div>
                     <div style={{ width: 32 }}></div>
                   </div>
-                  {fields.map(({ key, name }) => (
-                    <Space key={key} style={{ display: 'flex', alignItems: 'flex-start', marginBottom: 8 }} size="small">
-                      <Form.Item
-                        name={[name, 'casting_id']}
-                        rules={[{ required: true, message: '请选择零件' }]}
-                        style={{ width: 220, marginBottom: 0 }}
-                      >
-                        <Select placeholder="选择零件" showSearch optionFilterProp="children"
-                          onChange={(val) => {
-                            const casting = allCastings?.items?.find(c => c.id === val)
-                            if (casting?.latest_price != null) {
-                              form.setFieldsValue({ items: { [name]: { unit_price: Number(casting.latest_price) } } })
-                            }
-                          }}>
-                          {(allCastings?.items ?? []).map(c => (
-                            <Select.Option key={c.id} value={c.id}>
-                              {c.name} ({c.part_number}){c.latest_price ? ' ¥' + Number(c.latest_price).toFixed(2) : ''}
-                            </Select.Option>
-                          ))}
-                        </Select>
-                      </Form.Item>
-                      <Form.Item name={[name, 'required_quantity']} rules={[{ required: true }]}
-                        style={{ width: 100, marginBottom: 0 }}>
-                        <Input type="number" placeholder="需求数量" />
-                      </Form.Item>
-                      <Form.Item name={[name, 'produced_quantity']}
-                        style={{ width: 100, marginBottom: 0 }}>
-                        <Input type="number" placeholder="已完成" defaultValue={0} />
-                      </Form.Item>
-                      <Form.Item name={[name, 'unit_price']}
-                        style={{ width: 100, marginBottom: 0 }}>
-                        <Input type="number" placeholder="单价" />
-                      </Form.Item>
-                      <Button type="text" danger icon={<MinusCircleOutlined />} onClick={() => remove(name)} />
-                    </Space>
-                  ))}
+                  {fields.map(({ key, name }) => {
+                    const selectedCastingId = itemsValues?.[name]?.casting_id
+                    const available = availableMap[selectedCastingId] ?? null
+                    const requiredQty = itemsValues?.[name]?.required_quantity
+                    const showWarning = available !== null && requiredQty && Number(requiredQty) > available
+                    return (
+                    <React.Fragment key={key}>
+                      <Space key={key} style={{ display: 'flex', alignItems: 'flex-start', marginBottom: 8 }} size="small">
+                        <Form.Item
+                          name={[name, 'casting_id']}
+                          rules={[{ required: true, message: '请选择零件' }]}
+                          style={{ width: 220, marginBottom: 0 }}
+                        >
+                          <Select placeholder="选择零件" showSearch optionFilterProp="children"
+                            onChange={(val) => {
+                              const casting = allCastings?.items?.find(c => c.id === val)
+                              if (casting?.latest_price != null) {
+                                form.setFieldsValue({ items: { [name]: { unit_price: Number(casting.latest_price) } } })
+                              }
+                            }}>
+                            {castingOptions.map(c => {
+                              const avail = availableMap[c.id]
+                              return (
+                                <Select.Option key={c.id} value={c.id}>
+                                  {c.name} ({c.part_number})
+                                  {avail != null ? ` 库存:${avail.toFixed(1)}` : ''}
+                                  {c.latest_price ? ` ¥${Number(c.latest_price).toFixed(0)}` : ''}
+                                </Select.Option>
+                              )
+                            })}
+                          </Select>
+                        </Form.Item>
+                        <Form.Item
+                          name={[name, 'required_quantity']}
+                          rules={[{ required: true }]}
+                          style={{ width: 100, marginBottom: 0 }}
+                        >
+                          <Input type="number" placeholder="需求数量" />
+                        </Form.Item>
+                        <Form.Item name={[name, 'produced_quantity']}
+                          style={{ width: 100, marginBottom: 0 }}>
+                          <Input type="number" placeholder="已完成" defaultValue={0} />
+                        </Form.Item>
+                        <Form.Item name={[name, 'unit_price']}
+                          style={{ width: 100, marginBottom: 0 }}>
+                          <Input type="number" placeholder="单价" />
+                        </Form.Item>
+                        <Button type="text" danger icon={<MinusCircleOutlined />} onClick={() => remove(name)} />
+                      </Space>
+                      {showWarning && (
+                        <Alert
+                          message={`库存不足：可用 ${available.toFixed(1)} 件，需求 ${requiredQty} 件`}
+                          type="warning"
+                          showIcon
+                          style={{ marginBottom: 4, marginLeft: 0 }}
+                        />
+                      )}
+                    </React.Fragment>
+                  )})}
                   <Button type="dashed" onClick={() => add()} block style={{ marginTop: 4 }}>
                     + 添加零件
                   </Button>

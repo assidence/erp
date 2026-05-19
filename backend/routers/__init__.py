@@ -17,6 +17,7 @@ from backend.routers.technologies import router as technologies_router
 from backend.routers.casting_drawings import router as casting_drawings_router
 from backend.routers.dashboard import router as dashboard_router
 from backend.routers.todos import router as todos_router
+from backend.routers.casting_inventory import router as casting_inventory_router
 
 __all__ = [
     "customers_router",
@@ -35,4 +36,5 @@ __all__ = [
     "casting_drawings_router",
     "dashboard_router",
     "todos_router",
+    "casting_inventory_router",
 ]

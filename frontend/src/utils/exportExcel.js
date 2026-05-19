@@ -24,7 +24,7 @@ export function exportToExcel(columns, data, filename) {
   )
 
   const wsData = [header, ...rows]
-  const ws = XLSX.uh ? XLSX.utils.aoa_to_sheet(wsData) : XLSX.utils.aoa_to_sheet(wsData)
+  const ws = XLSX.utils.aoa_to_sheet(wsData)
 
   // Auto-width columns
   const colWidths = exportCols.map((col, i) => {

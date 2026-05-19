@@ -73,6 +73,14 @@ function CastingIns() {
     }
   })
 
+  const handleAdd = () => {
+    setEditingId(null)
+    setIsModalOpen(true)
+    // Set defaults for new record
+    form.resetFields()
+    form.setFieldsValue({ status: 'pending' })
+  }
+
   const handleModalClose = () => {
     setIsModalOpen(false)
     setEditingId(null)
@@ -192,7 +200,7 @@ function CastingIns() {
         <h1>铸件入库</h1>
         <Space>
           <Button icon={<DownloadOutlined />} onClick={handleExport}>导出Excel</Button>
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => setIsModalOpen(true)}>
+          <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
             新增入库
           </Button>
         </Space>
@@ -274,7 +282,7 @@ function CastingIns() {
           <Form.Item name="received_by" label="收货人">
             <Input />
           </Form.Item>
-          <Form.Item name="status" label="状态" initialValue="pending">
+          <Form.Item name="status" label="状态">
             <Select>
               <Select.Option value="pending">待审核</Select.Option>
               <Select.Option value="approved">已审核</Select.Option>

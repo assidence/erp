@@ -113,6 +113,13 @@ export const qualityIssuesApi = {
   delete: (id) => api.delete(`/quality-issues/${id}/`)
 }
 
+// Casting Inventory API
+export const castingInventoryApi = {
+  list: () => api.get('/casting-inventory/'),
+  getAvailable: (castingIds) => api.get('/casting-inventory/available', { params: { casting_ids: castingIds } }),
+  getTransactions: (castingId) => api.get(`/casting-inventory/casting/${castingId}/transactions`),
+}
+
 // Aliases
 export const customerApi = customersApi
 export const paymentPlanApi = paymentPlansApi

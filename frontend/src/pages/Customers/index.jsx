@@ -46,15 +46,13 @@ export default function Customers() {
   const deleteMutation = useMutation({
     mutationFn: (id) => customerApi.delete(id),
     onSuccess: (data, variables) => {
-      // Update the list cache directly
-      queryClient.setQueryData(['customers', page, pageSize, search], (old) => {
-        if (!old) return old
-        return {
-          ...old,
-          items: (old.items || []).filter(c => c.id !== variables),
-          total: Math.max(0, (old.total || 0) - 1)
-        }
-      })
+      // Invalidate all customer-related caches so downstream dropdowns refresh
+      queryClient.invalidateQueries({ queryKey: ['customers'] })
+      queryClient.invalidateQueries({ queryKey: ['customers-for-casting-ins'] })
+      queryClient.invalidateQueries({ queryKey: ['customers-for-production'] })
+      queryClient.invalidateQueries({ queryKey: ['customers-for-workpiece-outs'] })
+      queryClient.invalidateQueries({ queryKey: ['customers-for-payment-plans'] })
+      queryClient.invalidateQueries({ queryKey: ['customers-for-quality-issues'] })
       // Cancel pending customer-foundries query for deleted customer
       queryClient.cancelQueries({ queryKey: ['customer-foundries', variables] })
       // If deleting the currently viewed customer, close detail panel

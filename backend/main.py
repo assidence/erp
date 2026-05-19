@@ -15,6 +15,7 @@ from backend.routers import (
     quality_issues_router, attachments_router, quality_checks_router,
     production_operations_router, process_routes_router, technologies_router,
     casting_drawings_router, dashboard_router, todos_router,
+    casting_inventory_router,
 )
 
 setup_logging()
@@ -24,6 +25,7 @@ app = FastAPI(
     title=settings.APP_NAME,
     version=settings.APP_VERSION,
     description="Backend API for Mechanical Processing Factory ERP System",
+    redirect_slashes=False,
 )
 
 app.add_middleware(
@@ -75,7 +77,9 @@ app.include_router(technologies_router)
 app.include_router(casting_drawings_router)
 app.include_router(dashboard_router)
 app.include_router(todos_router)
+app.include_router(casting_inventory_router)
 
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
+

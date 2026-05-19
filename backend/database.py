@@ -1,7 +1,7 @@
 """
 SQLAlchemy Database Connection and Session Management
 """
-from sqlalchemy import create_engine, func
+from sqlalchemy import create_engine, func, event
 from sqlalchemy.orm import sessionmaker, declarative_base, declarative_mixin
 from sqlalchemy import Column, DateTime
 from datetime import datetime
@@ -17,6 +17,14 @@ engine = create_engine(
     connect_args={"check_same_thread": False},  # SQLite-specific for FastAPI
     echo=settings.DEBUG,  # Log SQL queries in debug mode
 )
+
+
+# Enable foreign key enforcement on every SQLite connection
+@event.listens_for(engine, "connect")
+def _enable_fk_pragma(dbapi_conn, connection_record):
+    cursor = dbapi_conn.cursor()
+    cursor.execute("PRAGMA foreign_keys = ON")
+    cursor.close()
 
 # Create session factory
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

@@ -8,6 +8,7 @@ import Customers from './pages/Customers'
 import Foundries from './pages/Foundries'
 import Castings from './pages/Castings'
 import CastingIns from './pages/CastingIns'
+import CastingInventory from './pages/CastingInventory'
 import WorkpieceOuts from './pages/WorkpieceOuts'
 import ProductionPlans from './pages/ProductionPlans'
 import PaymentPlans from './pages/PaymentPlans'
@@ -23,6 +24,7 @@ function App() {
         <Route path="/foundries" element={<Foundries />} />
         <Route path="/castings" element={<Castings />} />
         <Route path="/casting-ins" element={<CastingIns />} />
+        <Route path="/casting-inventory" element={<CastingInventory />} />
         <Route path="/workpiece-outs" element={<WorkpieceOuts />} />
         <Route path="/production-plans" element={<ProductionPlans />} />
         <Route path="/payment-plans" element={<PaymentPlans />} />

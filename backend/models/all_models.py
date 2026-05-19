@@ -150,8 +150,8 @@ class ProductionPlan(TimestampMixin, Base):
 class ProductionPlanItem(TimestampMixin, Base):
     __tablename__ = "production_plan_items"
     id = Column(Integer, primary_key=True)
-    plan_id = Column(Integer, ForeignKey("production_plans.id"), nullable=False)
-    casting_id = Column(Integer, ForeignKey("castings.id"), nullable=False)
+    plan_id = Column(Integer, ForeignKey("production_plans.id", ondelete="CASCADE"), nullable=False)
+    casting_id = Column(Integer, ForeignKey("castings.id", ondelete="CASCADE"), nullable=False)
     required_quantity = Column(Numeric(15, 3), nullable=False)
     produced_quantity = Column(Numeric(15, 3), nullable=False, default=0)
     unit_price = Column(Numeric(10, 2))
